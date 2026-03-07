@@ -1,6 +1,6 @@
 # Binaries
 # Binaries built by go build or scripts
-pii-shield
+/pii-shield
 cleaner
 *.exe
 *.exe~
