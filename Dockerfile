@@ -14,8 +14,8 @@ COPY . .
 # Build static binary (no CGO)
 RUN CGO_ENABLED=0 GOOS=linux go build -o pii-shield cmd/cleaner/main.go
 
-# Stage 2: Run (Scratch - empty image)
-FROM scratch
+# Stage 2: Run
+FROM alpine:latest
 
 WORKDIR /
 

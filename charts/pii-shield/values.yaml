@@ -1,0 +1,84 @@
+# Default values for pii-shield.
+# This chart deploys a demonstrational setup with a log generator and PII-Shield sidecar.
+
+replicaCount: 1
+
+image:
+  repository: pii-shield
+  pullPolicy: Never
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+# Image for the demonstrational log generator
+generatorImage:
+  repository: alpine
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources:
+  limits:
+    cpu: 50m
+    memory: 30Mi
+  requests:
+    cpu: 50m
+    memory: 30Mi
+
+# PII-Shield Configuration
+piiConfig:
+  # PII_SALT: Random byte string used for HMAC hashing. Recommended to set for persistent hashes.
+  salt: ""
+  
+  # Configuration tuning
+  # PII_ENTROPY_THRESHOLD: Shannon entropy threshold (3.0 - 8.0)
+  entropyThreshold: "3.6"
+  
+  # PII_MIN_SECRET_LENGTH: Minimum length of a string to be considered a candidate token
+  minSecretLength: "6"
+  
+  # PII_SENSITIVE_KEYS: Comma-separated list of keys to always redact values for
+  sensitiveKeys: "password,secret,token,key,api_key"
+  
+  # PII_ADAPTIVE_THRESHOLD: Enable statistical learning
+  adaptiveThreshold: "false"
+
+  # PII_CUSTOM_REGEX_LIST: JSON array of regex objects to enforce redaction
+  # Example: '[{"pattern": "^TX-\\d{5}$", "name": "TX"}]'
+  customRegexList: ""
+
+  # PII_SAFE_REGEX_LIST: JSON array of regex objects to ignore
+  safeRegexList: ""
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
