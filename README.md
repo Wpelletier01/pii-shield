@@ -41,6 +41,15 @@ While PII-Shield is highly optimized, deep inspection of complex logs requires c
 
 ## Installation
 
+### Helm Chart (Recommended for Kubernetes)
+A complete demonstrational sidecar pipeline is available via our official Helm repository:
+
+```bash
+helm repo add pii-shield https://aragossa.github.io/pii-shield/
+helm install my-scanner pii-shield/pii-shield
+```
+This deploys PII-Shield configured as a live log-redaction pipe with an ultra-lightweight footprint (30Mi Memory / 50m CPU).
+
 ### Docker
 Get the latest lightweight image from Docker Hub:
 ```bash
