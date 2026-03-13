@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: thelisdeep/pii-shield
   pullPolicy: IfNotPresent
-  tag: "v1.2.0"
+  tag: "v1.2.3"
 
 generatorImage:
   repository: alpine
