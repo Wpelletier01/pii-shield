@@ -10,6 +10,7 @@ Prevents data leaks (GDPR/SOC2) by redacting PII from logs *before* they leave t
 ![Build Status](https://github.com/aragossa/pii-shield/actions/workflows/test.yml/badge.svg)
 ![Coverage Status](https://codecov.io/gh/aragossa/pii-shield/branch/main/graph/badge.svg)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/aragossa/pii-shield?sort=semver)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/pii-shield)](https://artifacthub.io/packages/search?repo=pii-shield)
 
 "Don't let PII poison your AI models." PII-Shield ensures that sensitive data never reaches your training dataset, saving you from GDPR-forced model retraining.
 
