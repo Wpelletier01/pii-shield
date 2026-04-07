@@ -65,6 +65,10 @@ You can build the binary directly from the source code:
 go build -o pii-shield ./cmd/cleaner/main.go
 ```
 
+## Managing PII-Shield across dozens of clusters? We are building a hosted Control Plane with centralized rule management, Slack alerting, and redaction analytics. 
+
+[![Join the Waitlist](https://img.shields.io/badge/Join_the_Waitlist-PII--Shield_Cloud-blue?style=for-the-badge)](https://tally.so/r/PdY7Ze)
+
 ## Configuration
 See [CONFIGURATION.md](CONFIGURATION.md) for a full list of environment variables, including:
 - `PII_SALT`: Custom HMAC salt (Required for production).
