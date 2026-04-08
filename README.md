@@ -33,7 +33,8 @@ Developers often forget to mask sensitive data. Traditional regex filters in Flu
 
 > We chose the WASM architecture to ensure **zero network overhead** and **<1ms latency**. PII-Shield runs directly in-process, preserving the referential integrity of our hash chains while keeping logs compliant.
 
-## Managing PII-Shield across dozens of clusters? We are building a hosted Control Plane with centralized rule management, Slack alerting, and redaction analytics. 
+## Managing PII-Shield across dozens of clusters?
+We are building a hosted Control Plane with centralized rule management, Slack alerting, and redaction analytics. 
 
 [![Join the Waitlist](https://img.shields.io/badge/Join_the_Waitlist-PII--Shield_Cloud-blue?style=for-the-badge)](https://tally.so/r/PdY7Ze)
 
