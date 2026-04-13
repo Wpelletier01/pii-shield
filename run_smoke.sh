@@ -1,5 +1,5 @@
 #!/bin/bash
-# full_stress_test.sh - v5 (With Performance Metrics & macOS Support)
+# run_smoke.sh - v5 (With Performance Metrics & macOS Support)
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -26,6 +26,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo -e "${GREEN}✅ Go tests passed.${NC}\n"
+
+echo -e "${BLUE}🚀 Running Go Benchmarks...${NC}"
+go test -bench=. -benchmem -v ./pkg/scanner
+echo -e "${GREEN}✅ Benchmarks complete.${NC}\n"
 
 echo -e "${BLUE}🏗️  Building Docker Image...${NC}"
 docker build -t pii-shield:local . > /dev/null 2>&1

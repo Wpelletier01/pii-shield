@@ -11,31 +11,57 @@ Prevents data leaks (GDPR/SOC2) by redacting PII from logs *before* they leave t
 ![Coverage Status](https://codecov.io/gh/aragossa/pii-shield/branch/main/graph/badge.svg)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/aragossa/pii-shield?sort=semver)
 
+"Don't let PII poison your AI models." PII-Shield ensures that sensitive data never reaches your training dataset, saving you from GDPR-forced model retraining.
+
 ## Why PII-Shield?
 
 Developers often forget to mask sensitive data. Traditional regex filters in Fluentd/Logstash are slow, hard to maintain, and consume expensive CPU on log aggregators.
 
 **PII-Shield sits right next to your app container:**
-- **High Throughput:** Processes over 100k log lines per second (parallel) with low latency (~0.02ms per line).
+- **Production Ready:** Optimized for Kubernetes sidecars with **ultra-low memory allocations** (zero-GC overhead on hot paths) and deterministic O(1) regex matching.
 - **Context-Aware Entropy Analysis:** Detected high-entropy secrets even without keys (e.g. `Error: ... 44saCk9...`) by analyzing context keywords.
 - **Custom Regex Rules:** Deterministic redaction for structured data (UUIDs, IDs) that overrides entropy checks, ensuring 100% compliance for known patterns.
 - **100% Accuracy:** Verified against "Wild" stress tests including binary garbage, JSON nesting, and multilingual logs.
 - **Deterministic Hashing:** Replaces secrets with unique hashes (e.g., `[HIDDEN:a1b2c]`), allowing QA to correlate errors without seeing the raw data.
 - **Drop-in:** No code changes required. Works with any language (Node, Python, Java, Go).
+- **Whitelist Support:** Explicitly allow safe patterns (e.g., git hashes, system IDs) using `PII_SAFE_REGEX_LIST` to prevent false positives.
+
+## Trusted By
+
+**GuardSpine** (AI Governance Kernel) integrated PII-Shield's **In-Process WASM** to sanitize sensitive evidence trails directly within their Node.js and Python agents.
+
+> We chose the WASM architecture to ensure **zero network overhead** and **<1ms latency**. PII-Shield runs directly in-process, preserving the referential integrity of our hash chains while keeping logs compliant.
 
 ## Performance Considerations
 
-While PII-Shield is highly optimized, deep inspection of JSON logs (`{"key": "value"}`) requires parsing and re-serialization, which is CPU-intensive compared to simple text scanning.
-- **Text Logs:** Extremely fast (low allocation overhead).
-- **JSON Logs:** Higher CPU usage due to `encoding/json` overhead.
-- **Recommendation:** Usage is safe for high throughput, but be aware of the serialization cost for very large JSON blobs (>1MB).
+While PII-Shield is highly optimized, deep inspection of complex logs requires careful attention to configuration.
+- **Text Logs:** Extremely fast (>100k lines/s).
+- **JSON Logs:** Zero-allocation parsing (no `encoding/json` overhead). The scanner manually parses JSON structures to ensure high throughput (~7MB/s) without memory spikes.
+- **Recommendation:** Usage is safe for high throughput. We use recursion safeguards to prevent stack overflows on deeply nested JSON.
 
 ## Installation
+
+### Helm Chart (Recommended for Kubernetes)
+A complete demonstrational sidecar pipeline is available via our official Helm repository:
+
+```bash
+helm repo add pii-shield https://aragossa.github.io/pii-shield/
+helm install my-scanner pii-shield/pii-shield
+```
+This deploys PII-Shield configured as a live log-redaction pipe with an ultra-lightweight footprint (30Mi Memory / 50m CPU).
 
 ### Docker
 Get the latest lightweight image from Docker Hub:
 ```bash
 docker pull thelisdeep/pii-shield:latest
+```
+
+### Build from Source
+
+You can build the binary directly from the source code:
+
+```bash
+go build -o pii-shield ./cmd/cleaner/main.go
 ```
 
 ## Configuration
@@ -44,6 +70,17 @@ See [CONFIGURATION.md](CONFIGURATION.md) for a full list of environment variable
 - `PII_ADAPTIVE_THRESHOLD`: Enable dynamic entropy baselines.
 - `PII_DISABLE_BIGRAM_CHECK`: Optimize for non-English logs.
 - `PII_CUSTOM_REGEX_LIST`: Custom regex rules for deterministic redaction.
+- `PII_SAFE_REGEX_LIST`: Whitelist regex rules to ignore (matches are returned as-is).
+
+### Entropy Sensitivity Table (Default Threshold: 3.6)
+
+| Entropy | Data Type | Example |
+|---------|-----------|---------|
+| **0.0 - 3.0** | Common words, repeats | `password`, `admin`, `111111` |
+| **3.0 - 3.6** | CamelCase, partial hashes | `ProgramCampaignInstanceJob`, `8f3a11b2c` |
+| **3.6 - 4.5** | Paths, UUIDs, Weak Passwords | `/opt/application/runtime`, `P@ssw0rd2026!` |
+| **4.5 - 5.0** | Medium Tokens | `E8s9d_2kL1` |
+| **5.0+** | High Entropy Keys | (SHA-256, API Keys) |
 
 ## Quick Start
 1. Test Locally (CLI)
@@ -90,12 +127,11 @@ spec:
       mountPath: /opt/bin
 ```
 
-
 ## Verification
 This project is verified with a comprehensive suite:
 1. **Unit Tests**: Cover edge cases, multilingual support, and JSON integrity.
 2. **Fuzzing**: Native Go fuzzing ensures crash safety against invalid inputs.
-3. **Stress Testing**: `./full_stress_test.sh` validates 100% detection accuracy on mixed workloads.
+3. **Smoke Testing**: `./run_smoke.sh` validates 100% detection accuracy on mixed workloads.
 
 ## License
 Distributed under the Apache 2.0 License. See `LICENSE` for more information.

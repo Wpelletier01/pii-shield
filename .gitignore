@@ -1,6 +1,6 @@
 # Binaries
 # Binaries built by go build or scripts
-pii-shield
+/pii-shield
 cleaner
 *.exe
 *.exe~
@@ -40,3 +40,8 @@ Thumbs.db
 *.tmp
 cleaner
 docs
+buiild.sh
+public
+cmd/wasm/
+pkg/scanner/regex_redaction_test.go
+release.sh

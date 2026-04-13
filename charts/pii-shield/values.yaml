@@ -1,0 +1,87 @@
+replicaCount: 1
+
+image:
+  repository: thelisdeep/pii-shield
+  pullPolicy: IfNotPresent
+  tag: "v1.2.3"
+
+generatorImage:
+  repository: alpine
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+  # prometheus.io/scrape: "true"
+  # prometheus.io/port: "9090"
+
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources:
+  limits:
+    cpu: 50m
+    memory: 30Mi
+  requests:
+    cpu: 50m
+    memory: 30Mi
+
+# PII-Shield Configuration
+piiConfig:
+  # PII_SALT: Random byte string used for HMAC hashing. Recommended to set for persistent hashes.
+  salt: ""
+  
+  # Configuration tuning
+  # PII_ENTROPY_THRESHOLD: Shannon entropy threshold (3.0 - 8.0)
+  entropyThreshold: "3.6"
+  
+  # PII_MIN_SECRET_LENGTH: Minimum length of a string to be considered a candidate token
+  minSecretLength: "6"
+  
+  # PII_SENSITIVE_KEYS: Comma-separated list of keys to always redact values for
+  sensitiveKeys: "password,secret,token,key,api_key"
+  
+  # PII_ADAPTIVE_THRESHOLD: Enable statistical learning
+  adaptiveThreshold: "false"
+
+  # PII_CUSTOM_REGEX_LIST: JSON array of regex objects to enforce redaction
+  # Example: '[{"pattern": "^TX-\\d{5}$", "name": "TX"}]'
+  customRegexList: ""
+
+  # PII_SAFE_REGEX_LIST: JSON array of regex objects to ignore
+  safeRegexList: ""
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Observability Configuration
+metrics:
+  enabled: true
+  port: 9090
+  serviceMonitor:
+    enabled: false
+    # namespace: monitoring
+    # labels:
+    #   release: prometheus

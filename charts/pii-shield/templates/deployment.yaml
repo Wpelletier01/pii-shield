@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pii-shield.fullname" . }}
+  labels:
+    {{- include "pii-shield.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pii-shield.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "pii-shield.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "pii-shield.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: app-logs
+          emptyDir: {}
+      containers:
+        # 1. Log Generator (App Container)
+        - name: log-generator
+          image: "{{ .Values.generatorImage.repository }}:{{ .Values.generatorImage.tag }}"
+          imagePullPolicy: {{ .Values.generatorImage.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting App Simulator..."
+              while true; do
+                # Generate a mix of normal logs and logs with sensitive data
+                echo "[INFO] Processing user request from IP: 192.168.1.1" >> /var/log/app/output.log
+                echo "[DEBUG] Database connection established to userdb.internal" >> /var/log/app/output.log
+                echo "[WARN] Auth failed for user user@example.com, token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." >> /var/log/app/output.log
+                echo "[INFO] Order created successfully. TX-ID: TX-12345, CC: 4111 2222 3333 4444" >> /var/log/app/output.log
+                echo "----" >> /var/log/app/output.log
+                sleep 2
+              done
+          volumeMounts:
+            - name: app-logs
+              mountPath: /var/log/app
+
+        # 2. PII-Shield (Sidecar Container)
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            # Use tail -F (capital F) to track the file even if it's rotated/recreated,
+            # and pipe it into the pii-shield binary.
+            - "touch /var/log/app/output.log && tail -F /var/log/app/output.log | /pii-shield"
+          {{- if .Values.metrics.enabled }}
+          ports:
+            - name: http-metrics
+              containerPort: {{ .Values.metrics.port }}
+              protocol: TCP
+          {{- end }}
+          env:
+            {{- if .Values.piiConfig.salt }}
+            - name: PII_SALT
+              value: {{ .Values.piiConfig.salt | quote }}
+            {{- end }}
+            - name: PII_ENTROPY_THRESHOLD
+              value: {{ .Values.piiConfig.entropyThreshold | quote }}
+            - name: PII_MIN_SECRET_LENGTH
+              value: {{ .Values.piiConfig.minSecretLength | quote }}
+            - name: PII_SENSITIVE_KEYS
+              value: {{ .Values.piiConfig.sensitiveKeys | quote }}
+            - name: PII_ADAPTIVE_THRESHOLD
+              value: {{ .Values.piiConfig.adaptiveThreshold | quote }}
+            {{- if .Values.piiConfig.customRegexList }}
+            - name: PII_CUSTOM_REGEX_LIST
+              value: {{ .Values.piiConfig.customRegexList | quote }}
+            {{- end }}
+            {{- if .Values.piiConfig.safeRegexList }}
+            - name: PII_SAFE_REGEX_LIST
+              value: {{ .Values.piiConfig.safeRegexList | quote }}
+            {{- end }}
+            {{- if .Values.metrics.enabled }}
+            - name: PII_METRICS_ENABLED
+              value: "true"
+            - name: PII_METRICS_PORT
+              value: {{ .Values.metrics.port | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: app-logs
+              mountPath: /var/log/app
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
