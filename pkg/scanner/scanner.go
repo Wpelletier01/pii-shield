@@ -61,6 +61,10 @@ var (
 		},
 	}
 
+	// RedactionCallback is triggered whenever a string is redacted.
+	// The strategy is guaranteed to be one of "entropy", "regex", "luhn".
+	RedactionCallback func(strategy string)
+
 	// ContextKeywords trigger lower entropy thresholds for subsequent tokens
 	ContextKeywords = map[string]bool{
 		"error": true, "failed": true, "exception": true, "invalid": true,
@@ -432,7 +436,14 @@ func calculateBigramAdjustment(token string) float64 {
 	return 0.0
 }
 
-func redactWithHMAC(sensitiveData string, name string, sb *strings.Builder) {
+func redactWithHMAC(sensitiveData string, name string, strategy string, sb *strings.Builder) {
+	if RedactionCallback != nil {
+		if strategy == "" {
+			strategy = "entropy"
+		}
+		RedactionCallback(strategy)
+	}
+
 	mac := hmacPool.Get().(hash.Hash)
 	defer hmacPool.Put(mac)
 
@@ -470,7 +481,7 @@ func redactString(sensitiveData string) string {
 	sb := bufferPool.Get().(*strings.Builder)
 	sb.Reset()
 	defer bufferPool.Put(sb)
-	redactWithHMAC(sensitiveData, "", sb)
+	redactWithHMAC(sensitiveData, "", "entropy", sb)
 	return sb.String()
 }
 
@@ -534,7 +545,7 @@ func scanLine(logLine string, sb *strings.Builder) {
 		}
 
 		secret := logLine[lr.Start:lr.End]
-		redactWithHMAC(secret, "", sb)
+		redactWithHMAC(secret, "", "luhn", sb)
 
 		chunkStart = lr.End
 	}
@@ -746,7 +757,7 @@ func processSingleToken(content, original string, forcedSensitive bool, contextS
 				}
 				
 				// Use hashed redaction for Custom Regex
-				redactWithHMAC(content, matchName, sb)
+				redactWithHMAC(content, matchName, "regex", sb)
 				
 				if needsQuotes {
 					sb.WriteRune('"')
@@ -773,7 +784,7 @@ func processSingleToken(content, original string, forcedSensitive bool, contextS
 					}
 					
 					// Use hashed redaction for Custom Regex
-					redactWithHMAC(content, rule.Name, sb)
+					redactWithHMAC(content, rule.Name, "regex", sb)
 					
 					if needsQuotes {
 						sb.WriteRune('"')
@@ -823,7 +834,7 @@ func processSingleToken(content, original string, forcedSensitive bool, contextS
 		if needsQuotes {
 			sb.WriteRune('"')
 		}
-		redactWithHMAC(content, "", sb)
+		redactWithHMAC(content, "", "entropy", sb)
 		if needsQuotes {
 			sb.WriteRune('"')
 		}
@@ -1028,13 +1039,13 @@ func maskURLParameters(url string, sb *strings.Builder) {
 			if isSensitiveKey(key) {
 				sb.WriteString(key)
 				sb.WriteRune('=')
-				redactWithHMAC(val, "", sb)
+				redactWithHMAC(val, "", "entropy", sb)
 			} else {
 				score := CalculateComplexity(val)
 				if score > currentConfig.EntropyThreshold {
 					sb.WriteString(key)
 					sb.WriteRune('=')
-					redactWithHMAC(val, "", sb)
+					redactWithHMAC(val, "", "entropy", sb)
 				} else {
 					sb.WriteString(param)
 				}
