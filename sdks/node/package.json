@@ -1,0 +1,21 @@
+{
+  "name": "pii-shield",
+  "version": "1.0.0",
+  "description": "High-performance PII redaction scanner using Go WASM (WASI)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "pii",
+    "redaction",
+    "security",
+    "wasm",
+    "wasi",
+    "go"
+  ],
+  "author": "Aragossa",
+  "license": "MIT",
+  "dependencies": {}
+}
