@@ -21,6 +21,7 @@ import (
 // Config holds scanner configuration parameters.
 type Config struct {
 	EntropyThreshold        float64
+	ConfidenceThreshold     float64  // Hybrid validation confidence
 	MinSecretLength         int
 	Salt                    []byte
 	SensitiveKeys           []string
@@ -52,6 +53,9 @@ var (
 
 	// Single compiled regex for all sensitive key patterns (case-insensitive)
 	sensitiveRegex *regexp.Regexp
+
+	// UUID regex to skip false positive entropy unless forced
+	uuidRegex = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 	logTable [256]float64
 
@@ -123,6 +127,7 @@ func parseInt(s string) (int, error) {
 func loadConfig() Config {
 	cfg := Config{
 		EntropyThreshold:        DefaultEntropyThreshold,   // Adjusted for bigrams
+		ConfidenceThreshold:     1.0,   // High confidence required to skip false positives
 		MinSecretLength:         6,     // Lower minimal length as we have better context
 		DisableBigramCheck:      false, // Enable bigram check by default
 		BigramDefaultScore:      -7.0,  // Default for unknown bigrams
@@ -150,6 +155,13 @@ func loadConfig() Config {
 	if envThreshold := os.Getenv("PII_ENTROPY_THRESHOLD"); envThreshold != "" {
 		if threshold, err := parseFloat(envThreshold); err == nil {
 			cfg.EntropyThreshold = threshold
+		}
+	}
+
+	// Load confidence threshold
+	if envConfThreshold := os.Getenv("PII_CONFIDENCE_THRESHOLD"); envConfThreshold != "" {
+		if confThreshold, err := parseFloat(envConfThreshold); err == nil {
+			cfg.ConfidenceThreshold = confThreshold
 		}
 	}
 
@@ -536,6 +548,18 @@ func scanLine(logLine string, sb *strings.Builder) {
 	*/
 
 	luhnRanges := FindLuhnSequences(logLine)
+
+	// Hybrid Validation: Reduce false positive Luhn matches if confidence threshold is strictly elevated
+	if currentConfig.ConfidenceThreshold > 1.2 {
+		var validLuhns []Range
+		lowerLine := strings.ToLower(logLine)
+		hasContext := strings.Contains(lowerLine, "card") || strings.Contains(lowerLine, "cc") || strings.Contains(lowerLine, "pan") || strings.Contains(lowerLine, "visa")
+		if hasContext {
+			validLuhns = luhnRanges
+		}
+		luhnRanges = validLuhns
+	}
+
 	chunkStart := 0
 
 	for _, lr := range luhnRanges {
@@ -712,7 +736,7 @@ func trimQuotes(s string) string {
 
 func processSingleToken(content, original string, forcedSensitive bool, contextSensitive bool, autoQuote bool, sb *strings.Builder) {
 	// 0. Safety Whitelists (Static - Fastest)
-	if isSafe(content) {
+	if !forcedSensitive && isSafe(content) {
 		sb.WriteString(original)
 		return
 	}
@@ -807,6 +831,30 @@ func processSingleToken(content, original string, forcedSensitive bool, contextS
 		}
 	}
 
+	// 3.5 Hybrid Validation (Confidence & Pattern Skipping)
+	if !forcedSensitive {
+		// Skip UUIDs if they lack specific keyword context
+		if len(content) == 36 && uuidRegex.MatchString(content) {
+			if !contextSensitive {
+				sb.WriteString(original)
+				return
+			} else {
+				// We have a direct context keyword for this UUID. Force redact it instead of delegating to complexity score
+				forcedSensitive = true
+			}
+		}
+
+		// Fast heuristic for standard Base64 payloads/blobs
+		if len(content) > 64 && strings.HasSuffix(content, "=") && !strings.ContainsAny(content, "-_ \t\n") {
+			if !contextSensitive {
+				sb.WriteString(original)
+				return
+			} else {
+				forcedSensitive = true
+			}
+		}
+	}
+
 	// 4. Complexity Score
 	score := CalculateComplexity(content)
 	threshold := currentConfig.EntropyThreshold
@@ -820,7 +868,12 @@ func processSingleToken(content, original string, forcedSensitive bool, contextS
 		}
 	}
 
-	if score > threshold {
+	// Apply Hybrid Confidence Threshold
+	// High confidence threshold (e.g. 1.2) means the score must exceed baseline * 1.2
+	threshold *= currentConfig.ConfidenceThreshold
+
+	// If it is explicitly forced by a sensitive key context, we bypass the entropy threshold.
+	if forcedSensitive || score > threshold {
 		needsQuotes := false
 		if strings.HasPrefix(original, "\"") || strings.HasPrefix(original, "'") {
 			needsQuotes = true
@@ -1069,7 +1122,8 @@ func isSafe(token string) bool {
 	}
 
 	// Usage of Helper Functions to reduce complexity
-	if isUUID(token) || isIPv6(token) || isTimestamp(token) || isImage(token) {
+	// Note: isUUID is checked via Hybrid Validation, so it's not here
+	if isIPv6(token) || isTimestamp(token) || isImage(token) {
 		return true
 	}
 

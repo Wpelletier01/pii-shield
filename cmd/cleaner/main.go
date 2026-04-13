@@ -34,36 +34,67 @@ func main() {
 		}()
 	}
 
-	// Use buffered input for speed
+	failPolicy := os.Getenv("PII_FAIL_POLICY")
+	if failPolicy == "" {
+		failPolicy = "open" // Start with fail-open by default 
+	}
+
+	// Use buffered input
 	reader := bufio.NewScanner(os.Stdin)
 
-	// Optional: Increase buffer if log lines can be huge
-	// buf := make([]byte, 0, 64*1024)
-	// reader.Buffer(buf, 1024*1024)
+	// Explicit memory limits. Buffer size to avoid OOM but allow large JSONs (up to 10MB)
+	buf := make([]byte, 1024*1024)
+	reader.Buffer(buf, 10*1024*1024)
 
 	for reader.Scan() {
 		text := reader.Text()
 
-		var start time.Time
-		if metricsEnabled {
-			start = time.Now()
-			metrics.ProcessedBytesTotal.Add(float64(len(text)))
-		}
+		// Functional wrapper to catch panics per-line
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if metricsEnabled {
+						metrics.ErrorsTotal.Inc()
+					}
+					// Apply Blast Radius Control Policy
+					if failPolicy == "closed" {
+						fmt.Println("[PII_SHIELD_DROP: FATAL_ERROR]")
+					} else {
+						// Fail-Open: keep the flow alive 
+						fmt.Println(text)
+					}
+				}
+			}()
 
-		// Core logic
-		cleaned := scanner.ScanAndRedact(text)
+			var start time.Time
+			if metricsEnabled {
+				start = time.Now()
+				metrics.ProcessedBytesTotal.Add(float64(len(text)))
+			}
 
-		if metricsEnabled {
-			metrics.ProcessingDuration.Observe(time.Since(start).Seconds())
-		}
+			// Core logic
+			cleaned := scanner.ScanAndRedact(text)
 
-		// Write back to Stdout for Fluentd/Logstash
-		fmt.Println(cleaned)
+			if metricsEnabled {
+				metrics.ProcessingDuration.Observe(time.Since(start).Seconds())
+			}
+
+			// Write back to Stdout for Fluentd/Logstash
+			fmt.Println(cleaned)
+		}()
 	}
 
 	if err := reader.Err(); err != nil {
 		if metricsEnabled {
 			metrics.ErrorsTotal.Inc()
+		}
+		if err == bufio.ErrTooLong {
+			if failPolicy == "closed" {
+				fmt.Println("[PII_SHIELD_DROP: BUFFER_OVERFLOW]")
+			} else {
+				// Flow broken, but we can log that we failed open. However, we can't emit the rest of the line because scanner stopped.
+				fmt.Println("[PII_SHIELD_WARN: BUFFER_OVERFLOW, STREAM_BROKEN]")
+			}
 		}
 		fmt.Fprintln(os.Stderr, "Error reading standard input:", err)
 		os.Exit(1)

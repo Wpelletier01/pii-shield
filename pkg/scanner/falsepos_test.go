@@ -1,0 +1,83 @@
+package scanner
+
+import (
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"testing"
+)
+
+// TestFalsePositives proves that the Confidence Threshold correctly skips UUIDs and Base64 blobs
+func TestFalsePositives(t *testing.T) {
+	// Preserve global config so we don't break other tests!
+	oldCfg := currentConfig
+	defer UpdateConfig(oldCfg)
+
+	// Apply strict confidence testing config
+	cfg := oldCfg
+	cfg.ConfidenceThreshold = 1.5
+	UpdateConfig(cfg)
+
+	// 1. UUID Test
+	t.Run("UUIDs should be skipped", func(t *testing.T) {
+		uuids := []string{
+			"123e4567-e89b-12d3-a456-426614174000",
+			"550e8400-e29b-41d4-a716-446655440000",
+			"6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+		}
+		for _, uuid := range uuids {
+			// Embedded without context
+			input := fmt.Sprintf("User connected with id %s", uuid)
+			output := ScanAndRedact(input)
+			if output != input {
+				t.Errorf("Expected raw uuid pass-through, got %s", output)
+			}
+		}
+	})
+
+	// 2. Base64 Image/Payload Test
+	t.Run("Base64 blobs > 64 chars should be skipped", func(t *testing.T) {
+		// Generate 100 bytes of random data for base64 (entropy is perfectly random!)
+		raw := make([]byte, 100)
+		rand.Read(raw)
+		b64 := base64.StdEncoding.EncodeToString(raw)
+
+		input := fmt.Sprintf("Payload: %s", b64)
+		output := ScanAndRedact(input)
+		// We expect the Payload to NOT be redacted because it doesn't have a sensitive key context like 'secret:'
+		if output != input {
+			t.Errorf("Expected raw base64 pass-through, got %s", output)
+		}
+	})
+
+	// 3. True Positive Confidence Trigger (Forced Masking)
+	t.Run("Context overrides should still trigger redaction", func(t *testing.T) {
+		uuid := "123e4567-e89b-12d3-a456-426614174000"
+		// 'token' is a sensitive context keyword
+		input := fmt.Sprintf("token: %s", uuid)
+		output := ScanAndRedact(input)
+		if output == input {
+			t.Errorf("Expected UUID to be redacted because of context, but got %s", output)
+		}
+	})
+
+	// 4. Luhn False Positives
+	t.Run("Luhn False Positive suppression", func(t *testing.T) {
+		// Just a 16-digit random number that happens to pass Luhn (we need a valid Luhn for this test)
+		luhnValid := "4556737586899855"
+		input := fmt.Sprintf("TraceId=%s", luhnValid)
+		
+		output := ScanAndRedact(input)
+		// It should NOT redact because no CC context and threshold is high
+		if output != input {
+			t.Errorf("Expected plain traceId pass-through for Luhn FP, got %s", output)
+		}
+		
+		// But WITH context it should redact
+		inputWithCtx := fmt.Sprintf("visa card %s provided", luhnValid)
+		outputCtx := ScanAndRedact(inputWithCtx)
+		if outputCtx == inputWithCtx {
+			t.Errorf("Expected Luhn redaction for context string, got %s", outputCtx)
+		}
+	})
+}
