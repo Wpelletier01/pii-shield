@@ -4,6 +4,11 @@
   "description": "High-performance PII redaction scanner using Go WASM (WASI)",
   "main": "index.js",
   "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "pii-shield-wasi.wasm"
+  ],
   "scripts": {
     "test": "node test.js"
   },

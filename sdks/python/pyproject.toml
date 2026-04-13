@@ -21,3 +21,9 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/aragossa/pii-shield"
+
+[tool.setuptools]
+packages = ["pii_shield"]
+
+[tool.setuptools.package-data]
+"pii_shield" = ["*.wasm"]
