@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pii-shield"
+version = "1.0.0"
+authors = [
+  { name="Aragossa" },
+]
+description = "High-performance PII redaction scanner using Go WASM (WASI)"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "wasmtime>=12.0.0"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/aragossa/pii-shield"
