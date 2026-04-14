@@ -10,14 +10,9 @@ Test the Observability Layer locally without setting up an entire Kubernetes clu
    ```bash
    export PII_METRICS_ENABLED=true
    export PII_METRICS_PORT=9090
-   go run cmd/cleaner/main.go
+   echo '{"user": "aragossa", "token": "abc123secretXYZ", "cc": "4111111111111111"}' | go run cmd/cleaner/main.go
    ```
-2. In a separate terminal, pipe some JSON logs containing sensitive values into it:
-   ```bash
-   echo '{"user": "aragossa", "token": "abc123secretXYZ", "cc": "4111111111111111"}' | nc localhost 8080 # or pipe directly
-   # Wait, locally the cleaner reads from Stdin! Let's just type the JSON and hit Enter.
-   ```
-3. Once a log is processed, fetch the RED (Rate, Errors, Duration) metrics exposed:
+2. Once the log is processed, open a separate terminal and fetch the RED (Rate, Errors, Duration) metrics exposed:
    ```bash
    curl -s http://localhost:9090/metrics | grep pii
    ```
