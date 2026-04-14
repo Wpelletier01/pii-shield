@@ -29,6 +29,9 @@ class PiiShield:
         self.linker.define_wasi()
         self.store = Store(self.engine)
         wasi_cfg = WasiConfig()
+        wasi_cfg.inherit_stdout()
+        wasi_cfg.inherit_stderr()
+        wasi_cfg.inherit_env()
         self.store.set_wasi(wasi_cfg)
         
         self.module = Module.from_file(self.engine, wasm_path)
@@ -59,9 +62,7 @@ class PiiShield:
         if len(cfg_json) > 0:
             cfg_ptr = self.allocate(self.store, len(cfg_json))
             if cfg_ptr != 0:
-                mem_bytes = self.memory.data_ptr(self.store)
-                import ctypes
-                ctypes.memmove(mem_bytes + cfg_ptr, cfg_json, len(cfg_json))
+                self.memory.write(self.store, cfg_json, cfg_ptr)
                 self.init_config(self.store, cfg_ptr, len(cfg_json))
                 self.free_mem(self.store, cfg_ptr, len(cfg_json))
 
@@ -79,9 +80,7 @@ class PiiShield:
                     return "[PII_SHIELD_DROP: FATAL_ERROR]"
                 return input_str
                 
-            mem_bytes = self.memory.data_ptr(self.store)
-            import ctypes
-            ctypes.memmove(mem_bytes + ptr, input_bytes, length)
+            self.memory.write(self.store, input_bytes, ptr)
             
             packed_result = self.redact_fn(self.store, ptr, length)
             
@@ -91,9 +90,8 @@ class PiiShield:
             
             result_str = input_str
             if result_ptr != 0 and result_len != 0:
-                # Need to get memory pointer again in case it moved
-                mem_bytes = self.memory.data_ptr(self.store)
-                result_bytes = ctypes.string_at(mem_bytes + result_ptr, result_len)
+                # Need to read memory
+                result_bytes = self.memory.read(self.store, result_ptr, result_ptr + result_len)
                 result_str = result_bytes.decode('utf-8')
                 self.free_mem(self.store, result_ptr, result_len)
                 
