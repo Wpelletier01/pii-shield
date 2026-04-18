@@ -1,0 +1,30 @@
+{
+  "name": "@aragossa/pii-shield-wasi",
+  "version": "1.4.0",
+  "description": "High-performance PII redaction scanner using Go WASM (WASI)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "pii-shield-wasi.wasm"
+  ],
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "pii",
+    "redaction",
+    "security",
+    "wasm",
+    "wasi",
+    "go"
+  ],
+  "author": "Aragossa",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aragossa/pii-shield.git"
+  },
+  "dependencies": {}
+}
