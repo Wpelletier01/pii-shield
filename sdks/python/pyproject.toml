@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pii-shield-wasi"
-version = "1.3.3"
+version = "1.3.4"
 authors = [
   { name="Aragossa" },
 ]
