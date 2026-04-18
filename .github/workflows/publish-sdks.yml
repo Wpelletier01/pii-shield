@@ -30,9 +30,6 @@ jobs:
   publish-npm:
     needs: build-wasm
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - uses: actions/checkout@v4
       
@@ -52,7 +49,9 @@ jobs:
         working-directory: sdks/node
         run: |
           npm install
-          npm publish --provenance --access public
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           
   publish-pypi:
     needs: build-wasm
