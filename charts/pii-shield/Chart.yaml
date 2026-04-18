@@ -2,7 +2,7 @@ apiVersion: v2
 name: pii-shield
 description: A Helm chart for deploying PII-Shield as a demonstrational logging sidecar
 type: application
-version: 1.4.0
+version: 1.4.1
 appVersion: "1.4.0"
 
 annotations:
@@ -17,4 +17,4 @@ keywords:
   - compliance
 maintainers:
   - name: aragossa
-    email: admin@aragossa.com
+    email: ilya.ploskovitov@pii-shield.com
