@@ -63,6 +63,12 @@ spec:
             # Use tail -F (capital F) to track the file even if it's rotated/recreated,
             # and pipe it into the pii-shield binary.
             - "touch /var/log/app/output.log && tail -F /var/log/app/output.log | /pii-shield"
+          {{- if .Values.metrics.enabled }}
+          ports:
+            - name: http-metrics
+              containerPort: {{ .Values.metrics.port }}
+              protocol: TCP
+          {{- end }}
           env:
             {{- if .Values.piiConfig.salt }}
             - name: PII_SALT
@@ -83,6 +89,12 @@ spec:
             {{- if .Values.piiConfig.safeRegexList }}
             - name: PII_SAFE_REGEX_LIST
               value: {{ .Values.piiConfig.safeRegexList | quote }}
+            {{- end }}
+            {{- if .Values.metrics.enabled }}
+            - name: PII_METRICS_ENABLED
+              value: "true"
+            - name: PII_METRICS_PORT
+              value: {{ .Values.metrics.port | quote }}
             {{- end }}
           volumeMounts:
             - name: app-logs

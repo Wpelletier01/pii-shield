@@ -21,6 +21,9 @@ serviceAccount:
   name: ""
 
 podAnnotations: {}
+  # prometheus.io/scrape: "true"
+  # prometheus.io/port: "9090"
+
 podLabels: {}
 
 podSecurityContext: {}
@@ -72,3 +75,13 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# Observability Configuration
+metrics:
+  enabled: true
+  port: 9090
+  serviceMonitor:
+    enabled: false
+    # namespace: monitoring
+    # labels:
+    #   release: prometheus
