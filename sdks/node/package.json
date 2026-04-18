@@ -1,6 +1,6 @@
 {
   "name": "pii-shield-wasi",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "High-performance PII redaction scanner using Go WASM (WASI)",
   "main": "index.js",
   "types": "index.d.ts",
