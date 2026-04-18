@@ -41,8 +41,8 @@ func resetConfig() {
 
 func BenchmarkWhitelist_Static(b *testing.B) {
 	resetConfig()
-	// Test standard static whitelist check (e.g. UUID)
-	token := "123e4567-e89b-12d3-a456-426614174000" // Valid UUID
+	// Test standard static whitelist check
+	token := "2001:db8:85a3::8a2e:370:7334" // Valid IPv6
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

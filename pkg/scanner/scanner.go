@@ -1043,6 +1043,11 @@ func isSensitiveKey(key string) bool {
 	// Check substring matching (backward compatible)
 	for _, sk := range currentConfig.SensitiveKeys {
 		if strings.Contains(k, sk) {
+			// Fast reject for 'public_key' or 'pubkey' or 'pub_key'
+			if strings.Contains(k, "pub") && strings.Contains(k, "key") {
+				return false
+			}
+
 			// Safety check: High entropy strings (likely secrets) should not be treated as keys
 			// even if they contain the word "secret" or "key".
 			if len(key) > 15 && CalculateComplexity(key) > currentConfig.EntropyThreshold {
