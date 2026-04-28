@@ -15,7 +15,7 @@ sources:
   - https://github.com/aragossa/pii-shield
 maintainers:
   - name: aragossa
-    email: admin@thelis.dev
+    email: ilya.ploskovitov@pii-shield.com
 
 annotations:
   artifacthub.io/category: security
