@@ -20,10 +20,13 @@ jobs:
         component: 
           - name: pii-shield
             dockerfile: Dockerfile
+            context: .
           - name: pii-shield-operator
-            dockerfile: operator/Dockerfile
+            dockerfile: Dockerfile
+            context: operator
           - name: pii-shield-agent
             dockerfile: Dockerfile.agent
+            context: .
 
     steps:
       - name: Checkout repository
@@ -57,7 +60,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ matrix.component.context }}
           file: ${{ matrix.component.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
