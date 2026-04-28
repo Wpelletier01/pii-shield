@@ -16,6 +16,17 @@ Prevents data leaks (GDPR/SOC2) by redacting PII from logs *before* they leave t
 
 "Don't let PII poison your AI models." PII-Shield ensures that sensitive data never reaches your training dataset, saving you from GDPR-forced model retraining.
 
+> [!WARNING]
+> **Upgrading to v2.0.0?**
+> We have moved entirely to a Helm-based distribution and Distroless Native Sidecars. Kustomize deployment and `/bin/sh` access inside the sidecar are no longer supported. Read the Migration Guide.
+
+## Two Deployment Models
+
+PII-Shield offers two distinct ways to integrate into your stack:
+
+1. **Kubernetes Operator (Zero-code)**: Our flagship deployment model. A fully automated K8s Operator that injects a highly-secure Distroless Sidecar into your pods to intercept and sanitize logs on the fly.
+2. **In-Process WASM (For core integrations)**: For extreme performance, the core engine can be embedded directly via WASM, providing `<1ms` latency without network hops.
+
 ## Why PII-Shield?
 
 Developers often forget to mask sensitive data. Traditional regex filters in Fluentd/Logstash are slow, hard to maintain, and consume expensive CPU on log aggregators.
@@ -28,6 +39,11 @@ Developers often forget to mask sensitive data. Traditional regex filters in Flu
 - **Deterministic Hashing:** Replaces secrets with unique hashes (e.g., `[HIDDEN:a1b2c]`), allowing QA to correlate errors without seeing the raw data.
 - **Drop-in:** No code changes required. Works with any language (Node, Python, Java, Go).
 - **Whitelist Support:** Explicitly allow safe patterns (e.g., git hashes, system IDs) using `PII_SAFE_REGEX_LIST` to prevent false positives.
+
+
+## Managing PII-Shield across dozens of clusters?
+We are building a hosted Control Plane with centralized rule management, Slack alerting, and redaction analytics. 
+[![Join the Waitlist](https://img.shields.io/badge/Join_the_Waitlist-PII--Shield_Cloud-blue?style=for-the-badge)](https://tally.so/r/PdY7Ze)
 
 ## Trusted By
 
@@ -44,19 +60,22 @@ While PII-Shield is highly optimized, deep inspection of complex logs requires c
 
 ## Installation
 
-### Helm Chart (Recommended for Kubernetes)
-A complete demonstrational sidecar pipeline is available via our official Helm repository:
+### Helm Chart (Kubernetes Operator)
+The official and recommended way to deploy PII-Shield in Kubernetes is via our fully-automated Operator:
 
 ```bash
 helm repo add pii-shield https://aragossa.github.io/pii-shield/
-helm install my-scanner pii-shield/pii-shield
+helm repo update
+helm install pii-shield-operator pii-shield/pii-shield-operator -n operator-system --create-namespace
 ```
-This deploys PII-Shield configured as a live log-redaction pipe with an ultra-lightweight footprint (30Mi Memory / 50m CPU).
+This deploys the PII-Shield Operator which automatically injects highly-secure, distroless sidecars into your Pods without requiring any code or Dockerfile changes.
 
 ### Docker
-Get the latest lightweight image from Docker Hub:
+Get the latest lightweight image from Docker Hub or GHCR:
 ```bash
-docker pull thelisdeep/pii-shield:latest
+docker pull thelisdeep/pii-shield:v2.0.0
+# OR from GitHub Container Registry (Enterprise):
+docker pull ghcr.io/aragossa/pii-shield:v2.0.0
 ```
 
 ### Build from Source
@@ -91,55 +110,49 @@ You can pipe any log output through PII-Shield to see it in action immediately:
 
 ```bash
 # Emulate a log with a sensitive password
-echo "Error: User password=MySecretPass123! failed login" | docker run -i --rm thelisdeep/pii-shield:latest
+echo "Error: User password=MySecretPass123! failed login" | docker run -i --rm ghcr.io/aragossa/pii-shield:v2.0.0
 
 # Output: Error: User password=[HIDDEN:8f3a11] failed login
 ```
 
-2. Kubernetes (Sidecar Pattern)
-To use PII-Shield as a pipe wrapper for your application, use an `initContainer` to copy the binary into a shared volume.
+2. Kubernetes (Automated Sidecar Injection)
+With the PII-Shield Operator installed, protecting an application is as simple as creating a `PiiPolicy` and labeling your Pods.
 
+**Create a Policy:**
 ```yaml
-apiVersion: v1
-kind: Pod
+apiVersion: core.pii-shield.io/v1alpha1
+kind: PiiPolicy
+metadata:
+  name: strict-policy
+  namespace: default
+spec:
+  injectionMode: "file"
+```
+
+**Label your Deployment:**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: secure-app
 spec:
-  volumes:
-  - name: bin-dir
-    emptyDir: {}
-  
-  # 1. Copy the PII-Shield binary to a shared volume
-  initContainers:
-  - name: install-shield
-    image: thelisdeep/pii-shield:latest
-    command: ["cp", "/bin/pii-shield", "/opt/bin/pii-shield"]
-    volumeMounts:
-    - name: bin-dir
-      mountPath: /opt/bin
-
-  # 2. Run your app and pipe logs through PII-Shield
-  containers:
-  - name: my-app
-    image: my-app:1.0
-    command: ["/bin/sh", "-c"]
-    # Pipe stderr/stdout through the sanitizer
-    args: ["./start-app.sh 2>&1 | /opt/bin/pii-shield"] 
-    volumeMounts:
-    - name: bin-dir
-      mountPath: /opt/bin
+  template:
+    metadata:
+      labels:
+        pii-shield.io/inject: "true"
+      annotations:
+        pii-shield.io/policy: "strict-policy"
+# ...
 ```
 
-## Managing PII-Shield across dozens of clusters?
-We are building a hosted Control Plane with centralized rule management, Slack alerting, and redaction analytics. 
-
-[![Join the Waitlist](https://img.shields.io/badge/Join_the_Waitlist-PII--Shield_Cloud-blue?style=for-the-badge)](https://tally.so/r/PdY7Ze)
+The Operator will automatically inject the `pii-shield-agent` using the Native Sidecar pattern (K8s 1.28+) and securely mask all logs!
 
 ## Verification
-This project is verified with a comprehensive suite:
-1. **Unit Tests**: Cover edge cases, multilingual support, and JSON integrity.
-2. **Fuzzing**: Native Go fuzzing ensures crash safety against invalid inputs.
+This project is verified with a comprehensive testing suite, ensuring production-readiness for v2.0.0:
+1. **Unit Tests**: Cover edge cases, multilingual support, and JSON integrity with >85% coverage.
+2. **Fuzzing**: Native Go fuzzing ensures crash safety against invalid and random binary inputs.
 3. **Smoke Testing**: `./run_smoke.sh` validates 100% detection accuracy on mixed workloads.
+4. **End-to-End (E2E) Testing**: The `operator/tests/run_e2e.sh` suite performs full-stack validation using Minikube and Helm. It builds local images, provisions the Operator without cert-manager, deploys target Jobs, and verifies actual log redaction by intercepting sidecar outputs.
 
 ## License
 Distributed under the Apache 2.0 License. See `LICENSE` for more information.

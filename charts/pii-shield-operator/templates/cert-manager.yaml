@@ -1,0 +1,27 @@
+{{- if .Values.webhook.useCertManager -}}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "pii-shield-operator.fullname" . }}-selfsigned-issuer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pii-shield-operator.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "pii-shield-operator.fullname" . }}-serving-cert
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pii-shield-operator.labels" . | nindent 4 }}
+spec:
+  dnsNames:
+  - {{ include "pii-shield-operator.fullname" . }}-webhook-service.{{ .Release.Namespace }}.svc
+  - {{ include "pii-shield-operator.fullname" . }}-webhook-service.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: {{ include "pii-shield-operator.fullname" . }}-selfsigned-issuer
+  secretName: {{ include "pii-shield-operator.fullname" . }}-webhook-server-cert
+{{- end -}}

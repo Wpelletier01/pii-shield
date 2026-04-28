@@ -7,7 +7,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
@@ -15,6 +14,16 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+    strategy:
+      matrix:
+        component: 
+          - name: pii-shield
+            dockerfile: Dockerfile
+          - name: pii-shield-operator
+            dockerfile: operator/Dockerfile
+          - name: pii-shield-agent
+            dockerfile: Dockerfile.agent
 
     steps:
       - name: Checkout repository
@@ -38,13 +47,18 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            thelisdeep/pii-shield
+            ${{ env.REGISTRY }}/aragossa/${{ matrix.component.name }}
+            thelisdeep/${{ matrix.component.name }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ${{ matrix.component.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
