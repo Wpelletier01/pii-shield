@@ -6,7 +6,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"github.com/nxadm/tail"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -39,64 +43,115 @@ func main() {
 		failPolicy = "open" // Start with fail-open by default 
 	}
 
-	// Use buffered input
-	reader := bufio.NewScanner(os.Stdin)
+	var watchFile string
+	for i := 1; i < len(os.Args); i++ {
+		if os.Args[i] == "--watch-file" && i+1 < len(os.Args) {
+			watchFile = os.Args[i+1]
+			break
+		}
+	}
 
-	// Explicit memory limits. Buffer size to avoid OOM but allow large JSONs (up to 10MB)
-	buf := make([]byte, 1024*1024)
-	reader.Buffer(buf, 10*1024*1024)
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	for reader.Scan() {
-		text := reader.Text()
-
-		// Functional wrapper to catch panics per-line
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					if metricsEnabled {
-						metrics.ErrorsTotal.Inc()
-					}
-					// Apply Blast Radius Control Policy
-					if failPolicy == "closed" {
-						fmt.Println("[PII_SHIELD_DROP: FATAL_ERROR]")
-					} else {
-						// Fail-Open: keep the flow alive 
-						fmt.Println(text)
-					}
-				}
-			}()
-
-			var start time.Time
-			if metricsEnabled {
-				start = time.Now()
-				metrics.ProcessedBytesTotal.Add(float64(len(text)))
+	if watchFile != "" {
+		// Smart wait: poll until the target file is created by the main container
+		for {
+			if _, err := os.Stat(watchFile); err == nil {
+				break
 			}
-
-			// Core logic
-			cleaned := scanner.ScanAndRedact(text)
-
-			if metricsEnabled {
-				metrics.ProcessingDuration.Observe(time.Since(start).Seconds())
+			select {
+			case <-sigChan:
+				os.Exit(0)
+			case <-time.After(500 * time.Millisecond):
 			}
+		}
 
-			// Write back to Stdout for Fluentd/Logstash
-			fmt.Println(cleaned)
+		t, err := tail.TailFile(watchFile, tail.Config{
+			Follow:    true,
+			ReOpen:    true,
+			MustExist: true,
+			Logger:    tail.DiscardingLogger,
+		})
+		if err != nil {
+			log.Fatalf("Failed to tail file: %v", err)
+		}
+
+		go func() {
+			<-sigChan
+			t.Stop()
 		}()
-	}
 
-	if err := reader.Err(); err != nil {
-		if metricsEnabled {
-			metrics.ErrorsTotal.Inc()
-		}
-		if err == bufio.ErrTooLong {
-			if failPolicy == "closed" {
-				fmt.Println("[PII_SHIELD_DROP: BUFFER_OVERFLOW]")
-			} else {
-				// Flow broken, but we can log that we failed open. However, we can't emit the rest of the line because scanner stopped.
-				fmt.Println("[PII_SHIELD_WARN: BUFFER_OVERFLOW, STREAM_BROKEN]")
+		for line := range t.Lines {
+			if line.Err != nil {
+				continue
 			}
+			processLine(line.Text, metricsEnabled, failPolicy)
 		}
-		fmt.Fprintln(os.Stderr, "Error reading standard input:", err)
-		os.Exit(1)
+	} else {
+		// Legacy Stdin mode
+		reader := bufio.NewScanner(os.Stdin)
+		buf := make([]byte, 1024*1024)
+		reader.Buffer(buf, 10*1024*1024)
+
+		go func() {
+			<-sigChan
+			os.Exit(0)
+		}()
+
+		for reader.Scan() {
+			processLine(reader.Text(), metricsEnabled, failPolicy)
+		}
+
+		if err := reader.Err(); err != nil {
+			if metricsEnabled {
+				metrics.ErrorsTotal.Inc()
+			}
+			if err == bufio.ErrTooLong {
+				if failPolicy == "closed" {
+					fmt.Println("[PII_SHIELD_DROP: BUFFER_OVERFLOW]")
+				} else {
+					fmt.Println("[PII_SHIELD_WARN: BUFFER_OVERFLOW, STREAM_BROKEN]")
+				}
+			}
+			fmt.Fprintln(os.Stderr, "Error reading standard input:", err)
+			os.Exit(1)
+		}
 	}
+}
+
+func processLine(text string, metricsEnabled bool, failPolicy string) {
+	// Functional wrapper to catch panics per-line
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if metricsEnabled {
+					metrics.ErrorsTotal.Inc()
+				}
+				// Apply Blast Radius Control Policy
+				if failPolicy == "closed" {
+					fmt.Println("[PII_SHIELD_DROP: FATAL_ERROR]")
+				} else {
+					// Fail-Open: keep the flow alive 
+					fmt.Println(text)
+				}
+			}
+		}()
+
+		var start time.Time
+		if metricsEnabled {
+			start = time.Now()
+			metrics.ProcessedBytesTotal.Add(float64(len(text)))
+		}
+
+		// Core logic
+		cleaned := scanner.ScanAndRedact(text)
+
+		if metricsEnabled {
+			metrics.ProcessingDuration.Observe(time.Since(start).Seconds())
+		}
+
+		// Write back to Stdout for Fluentd/Logstash
+		fmt.Println(cleaned)
+	}()
 }

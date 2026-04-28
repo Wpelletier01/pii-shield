@@ -1,0 +1,16 @@
+apiVersion: core.pii-shield.io/v1alpha1
+kind: PiiPolicy
+metadata:
+  name: strict-policy
+  namespace: default
+spec:
+  injectionMode: file
+  failPolicy: open
+  logPath: /var/log/app
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "30Mi"
+    limits:
+      cpu: "100m"
+      memory: "60Mi"

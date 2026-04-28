@@ -734,7 +734,17 @@ func trimQuotes(s string) string {
 	return s
 }
 
+func isRedacted(content string) bool {
+	return strings.HasPrefix(content, "[HIDDEN") && strings.HasSuffix(content, "]")
+}
+
 func processSingleToken(content, original string, forcedSensitive bool, contextSensitive bool, autoQuote bool, sb *strings.Builder) {
+	// -1. Check Idempotency (Already Redacted)
+	if isRedacted(content) {
+		sb.WriteString(original)
+		return
+	}
+
 	// 0. Safety Whitelists (Static - Fastest)
 	if !forcedSensitive && isSafe(content) {
 		sb.WriteString(original)

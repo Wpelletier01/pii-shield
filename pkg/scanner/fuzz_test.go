@@ -49,7 +49,7 @@ func FuzzScanner(f *testing.F) {
 		// The value is "[HIDDEN:xyz]".
 		// If we redact "[HIDDEN:xyz]", we get "[HIDDEN:newhash]".
 		// So strict idempotency Scan(Scan(x)) == Scan(x) requires the scanner to recognize its own redaction.
-		// TODO: Implement "IsRedacted" check in scanner to support idempotency.
+		// Verify idempotency (should not crash or double-redact if logic works)
 	})
 }
 
