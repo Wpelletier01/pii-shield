@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - core.pii-shield.io
+  resources:
+  - piipolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - core.pii-shield.io
+  resources:
+  - piipolicies/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - core.pii-shield.io
+  resources:
+  - piipolicies/status
+  verbs:
+  - get
+  - patch
+  - update

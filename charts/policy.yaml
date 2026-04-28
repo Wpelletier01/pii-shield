@@ -1,0 +1,7 @@
+apiVersion: core.pii-shield.io/v1alpha1
+kind: PiiPolicy
+metadata:
+  name: strict-policy
+  namespace: default
+spec:
+  injectionMode: "file"

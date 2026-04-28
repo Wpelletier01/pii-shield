@@ -1,0 +1,67 @@
+# Default values for pii-shield-operator.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/aragossa/pii-shield-operator
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "operator-controller-manager"
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Install CRDs
+installCRDs: true
+
+# Webhook Certificate Configuration
+webhook:
+  # If true, uses cert-manager to generate and manage certificates.
+  # If false, Helm will generate self-signed certificates during installation.
+  useCertManager: true
+
+# Advanced Configuration for the PII-Shield Agent injected into Pods
+sidecar:
+  image:
+    repository: ghcr.io/aragossa/pii-shield-agent
+    tag: ""
+  # fsGroup to inject into the mutated pod if none is specified
+  fsGroup: 65532
+  # If true, injects the sidecar into 'containers' instead of 'initContainers'
+  legacySidecarMode: false

@@ -85,3 +85,6 @@ metrics:
     # namespace: monitoring
     # labels:
     #   release: prometheus
+
+# Operator configuration
+legacySidecarMode: false

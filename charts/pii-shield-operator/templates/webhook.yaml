@@ -1,0 +1,69 @@
+{{- $ca := "" -}}
+{{- $cert := "" -}}
+{{- $key := "" -}}
+
+{{- if not .Values.webhook.useCertManager -}}
+{{- $caName := printf "%s-ca" (include "pii-shield-operator.fullname" .) -}}
+{{- $svcName := printf "%s-webhook-service" (include "pii-shield-operator.fullname" .) -}}
+{{- $namespace := .Release.Namespace -}}
+{{- $dnsNames := list (printf "%s.%s.svc" $svcName $namespace) (printf "%s.%s.svc.cluster.local" $svcName $namespace) -}}
+
+{{- $caData := genCA $caName 3650 -}}
+{{- $certData := genSignedCert $svcName nil $dnsNames 3650 $caData -}}
+
+{{- $ca = $caData.Cert -}}
+{{- $cert = $certData.Cert -}}
+{{- $key = $certData.Key -}}
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "pii-shield-operator.fullname" . }}-webhook-server-cert
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pii-shield-operator.labels" . | nindent 4 }}
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ b64enc $ca }}
+  tls.crt: {{ b64enc $cert }}
+  tls.key: {{ b64enc $key }}
+---
+{{- end -}}
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ include "pii-shield-operator.fullname" . }}-mutating-webhook-configuration
+  {{- if .Values.webhook.useCertManager }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "pii-shield-operator.fullname" . }}-serving-cert
+  {{- end }}
+  labels:
+    {{- include "pii-shield-operator.labels" . | nindent 4 }}
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "pii-shield-operator.fullname" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /mutate-v1-pod
+    {{- if not .Values.webhook.useCertManager }}
+    caBundle: {{ b64enc $ca }}
+    {{- end }}
+  failurePolicy: Ignore
+  name: mpod.kb.io
+  namespaceSelector:
+    matchLabels:
+      pii-shield.io/injection: enabled
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pods
+  sideEffects: None
