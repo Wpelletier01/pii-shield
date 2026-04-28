@@ -22,7 +22,7 @@ jobs:
             dockerfile: Dockerfile
             context: .
           - name: pii-shield-operator
-            dockerfile: Dockerfile
+            dockerfile: operator/Dockerfile
             context: operator
           - name: pii-shield-agent
             dockerfile: Dockerfile.agent
