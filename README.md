@@ -10,6 +10,9 @@ Prevents data leaks (GDPR/SOC2) by redacting PII from logs *before* they leave t
 ![Build Status](https://github.com/aragossa/pii-shield/actions/workflows/test.yml/badge.svg)
 ![Coverage Status](https://codecov.io/gh/aragossa/pii-shield/branch/main/graph/badge.svg)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/aragossa/pii-shield?sort=semver)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/pii-shield)](https://artifacthub.io/packages/search?repo=pii-shield)
+![PyPI Downloads](https://img.shields.io/pypi/dm/pii-shield-wasi?label=PyPI%20Downloads&color=blue)
+![npm Downloads](https://img.shields.io/npm/dw/@aragossa/pii-shield-wasi?label=npm%20Downloads&color=green)
 
 "Don't let PII poison your AI models." PII-Shield ensures that sensitive data never reaches your training dataset, saving you from GDPR-forced model retraining.
 
@@ -36,6 +39,11 @@ Developers often forget to mask sensitive data. Traditional regex filters in Flu
 - **Deterministic Hashing:** Replaces secrets with unique hashes (e.g., `[HIDDEN:a1b2c]`), allowing QA to correlate errors without seeing the raw data.
 - **Drop-in:** No code changes required. Works with any language (Node, Python, Java, Go).
 - **Whitelist Support:** Explicitly allow safe patterns (e.g., git hashes, system IDs) using `PII_SAFE_REGEX_LIST` to prevent false positives.
+
+
+## Managing PII-Shield across dozens of clusters?
+We are building a hosted Control Plane with centralized rule management, Slack alerting, and redaction analytics. 
+[![Join the Waitlist](https://img.shields.io/badge/Join_the_Waitlist-PII--Shield_Cloud-blue?style=for-the-badge)](https://tally.so/r/PdY7Ze)
 
 ## Trusted By
 
