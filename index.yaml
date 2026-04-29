@@ -4,6 +4,30 @@ entries:
   - annotations:
       artifacthub.io/official: "true"
     apiVersion: v2
+    appVersion: 2.0.0
+    created: "2026-04-29T18:30:08.489844975Z"
+    description: A Helm chart for deploying PII-Shield as a demonstrational logging
+      sidecar
+    digest: fa1b2b58bb4af052a2a902219f52357323a6f23afe8586ab0fcd2216e2999fd9
+    home: https://github.com/aragossa/pii-shield
+    keywords:
+    - security
+    - observability
+    - pii
+    - compliance
+    maintainers:
+    - email: ilya.ploskovitov@pii-shield.com
+      name: aragossa
+    name: pii-shield
+    sources:
+    - https://github.com/aragossa/pii-shield
+    type: application
+    urls:
+    - https://github.com/aragossa/pii-shield/releases/download/pii-shield-2.0.0/pii-shield-2.0.0.tgz
+    version: 2.0.0
+  - annotations:
+      artifacthub.io/official: "true"
+    apiVersion: v2
     appVersion: 1.4.2
     created: "2026-04-18T21:11:06.015592316Z"
     description: A Helm chart for deploying PII-Shield as a demonstrational logging
@@ -123,4 +147,4 @@ entries:
     urls:
     - https://github.com/aragossa/pii-shield/releases/download/pii-shield-1.2.1/pii-shield-1.2.1.tgz
     version: 1.2.1
-generated: "2026-04-18T21:11:06.015622042Z"
+generated: "2026-04-29T18:30:08.489881003Z"
