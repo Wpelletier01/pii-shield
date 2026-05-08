@@ -1552,12 +1552,7 @@ func redactSlice(s []interface{}) {
 			if proc != str {
 				s[i] = 0
 			}
-		case float64:
-			str := fmt.Sprintf("%v", val)
-			proc := processSingleTokenToString(str, str, false, false)
-			if proc != str {
-				s[i] = 0
-			}
+
 		}
 	}
 }
