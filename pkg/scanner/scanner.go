@@ -1202,7 +1202,7 @@ func isIPv6(token string) bool {
 	if strings.Count(token, ":") >= 2 {
 		isIPv6 := true
 		for _, r := range token {
-			if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F') || r == ':') {
+			if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') && r != ':' {
 				isIPv6 = false
 				break
 			}
@@ -1261,7 +1261,7 @@ func isSSHKey(token string) bool {
 		// Minimal Base64 check (just charset)
 		isBase64 := true
 		for _, r := range token {
-			if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || r == '+' || r == '/' || r == '=') {
+			if (r < '0' || r > '9') && (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && r != '+' && r != '/' && r != '=' {
 				isBase64 = false
 				break
 			}
