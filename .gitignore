@@ -45,3 +45,5 @@ public
 cmd/wasm/
 pkg/scanner/regex_redaction_test.go
 release.sh
+openspec/*
+.agent
