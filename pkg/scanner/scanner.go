@@ -528,12 +528,16 @@ func scanLine(logLine string, sb *strings.Builder) {
 		return
 	}
 
-	trimmed := strings.TrimSpace(logLine)
+	// TODO: verify if needed or can be removed
+	/*
+		trimmed := strings.TrimSpace(logLine)
 
-	// URL Optimization
-	if strings.HasPrefix(trimmed, "GET ") || strings.HasPrefix(trimmed, "POST ") || strings.Contains(trimmed, "://") {
-		// Rely on scanSegment
-	}
+		// URL Optimization
+
+		if strings.HasPrefix(trimmed, "GET ") || strings.HasPrefix(trimmed, "POST ") || strings.Contains(trimmed, "://") {
+			// Rely on scanSegment
+		}
+	*/
 
 	// OPTIMIZATION PHASE 3: Disable processJSONLine
 	// Standard JSON parsing is too slow. Our tokenizer handles JSON structure (quotes, braces) naturally.
