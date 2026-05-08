@@ -79,7 +79,9 @@ func main() {
 
 		go func() {
 			<-sigChan
-			t.Stop()
+			if err := t.Stop(); err != nil {
+				log.Printf("Failed to stop tail: %v", err)
+			}
 		}()
 
 		for line := range t.Lines {
