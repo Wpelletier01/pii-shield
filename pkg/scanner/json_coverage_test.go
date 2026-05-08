@@ -68,6 +68,12 @@ func TestProcessJSONLine(t *testing.T) {
 			isOk:     true,
 		},
 		{
+			name:     "slice with sensitive number",
+			input:    `{"data": [1.23456789e+123]}`,
+			expected: []string{`"data":[0]`},
+			isOk:     true,
+		},
+		{
 			name:     "2d slice string",
 			input:    `{"data": [["safe_string", "4556737586899855"]]}`,
 			expected: []string{`"[HIDDEN`},
