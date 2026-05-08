@@ -114,6 +114,25 @@ func TestScanner_CalculateShannon(t *testing.T) {
 	}
 }
 
+func TestScanner_TrimQuotes(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"Single Quotes", "'hello'", "hello"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := trimQuotes(tt.input)
+			if got != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 func TestScanner_NegativeCases(t *testing.T) {
 	tests := []struct {
 		name         string
