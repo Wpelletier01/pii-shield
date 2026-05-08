@@ -1493,24 +1493,6 @@ func isDigits(s string) bool {
 	return true
 }
 
-func isUUID(s string) bool {
-	if len(s) != 36 {
-		return false
-	}
-	if s[8] != '-' || s[13] != '-' || s[18] != '-' || s[23] != '-' {
-		return false
-	}
-	for i, r := range s {
-		if i == 8 || i == 13 || i == 18 || i == 23 {
-			continue
-		}
-		if !isHex(r) {
-			return false
-		}
-	}
-	return true
-}
-
 func isHex(r rune) bool {
 	return (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')
 }
