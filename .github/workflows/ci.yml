@@ -21,8 +21,10 @@ jobs:
     - name: Verify Dependencies
       run: go mod verify
 
-    - name: Static Analysis (Vet)
-      run: go vet ./...
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        only-new-issues: true
 
     - name: Run Fuzz Checks (Sanity)
       run: go test -fuzz=FuzzScanner -fuzztime=15s ./pkg/scanner
