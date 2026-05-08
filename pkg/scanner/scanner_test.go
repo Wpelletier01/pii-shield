@@ -76,6 +76,44 @@ func TestScanner_TechnicalJargon(t *testing.T) {
 	}
 }
 
+func TestScanner_CalculateComplexity(t *testing.T) {
+	tests := []struct {
+		name     string
+		token    string
+		expected float64
+	}{
+		{"Empty String", "", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CalculateComplexity(tt.token)
+			if got != tt.expected {
+				t.Errorf("Expected complexity %v, got %v", tt.expected, got)
+			}
+		})
+	}
+}
+
+func TestScanner_CalculateShannon(t *testing.T) {
+	tests := []struct {
+		name     string
+		token    string
+		expected float64
+	}{
+		{"Empty String", "", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := calculateShannon(tt.token)
+			if got != tt.expected {
+				t.Errorf("Expected Shannon entropy %v, got %v", tt.expected, got)
+			}
+		})
+	}
+}
+
 func TestScanner_NegativeCases(t *testing.T) {
 	tests := []struct {
 		name         string
