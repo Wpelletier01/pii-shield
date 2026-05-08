@@ -67,6 +67,12 @@ func TestProcessJSONLine(t *testing.T) {
 			expected: []string{`"[HIDDEN`},
 			isOk:     true,
 		},
+		{
+			name:     "2d slice string",
+			input:    `{"data": [["safe_string", "4556737586899855"]]}`,
+			expected: []string{`"[HIDDEN`},
+			isOk:     true,
+		},
 	}
 
 	for _, tt := range tests {
